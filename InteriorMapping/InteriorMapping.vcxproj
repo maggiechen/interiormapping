@@ -142,11 +142,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="MouseControlledCamera.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="VertexBufferLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\ThirdPartyLibs\Libs\glad.c" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MouseControlledCamera.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="VertexBufferLayout.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\src\shaders\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\shaders\simple\fragment.glsl" />
+    <None Include="..\src\shaders\simple\vertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

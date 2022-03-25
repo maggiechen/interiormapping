@@ -1,9 +1,11 @@
 #include "Main.h"
 
 
-int main()
+int main(int argc, char* argv[])
 {
-	Main m;
+	std::string fullPathToExe = argv[0];
+	std::string appPath = fullPathToExe.substr(0, fullPathToExe.find_last_of("\\"));
+	Main m(appPath);
 	m.Run();
 }
 
@@ -14,6 +16,12 @@ int main()
 int Main::s_windowHeight = 600;
 int Main::s_windowWidth = 800;
 
+Main::Main(std::string appPath)
+{
+	m_appPath = appPath;
+
+}
+
 int Main::Run()
 {
 	InitGLFW();
@@ -23,21 +31,78 @@ int Main::Run()
 	{
 		return ret;
 	}
-	RunGameLoop();
+	
+	
+	unsigned int VAO;
+	Geometry::CreateRectangle(VAO, m_verticesCube, sizeof(m_verticesCube));
+	auto vertPath = m_appPath + "\\vertex.glsl";
+	auto fragPath = m_appPath + "\\fragment.glsl";
+	Shader* shader = new Shader(vertPath.c_str(), fragPath.c_str());
+
+	RunGameLoop(shader, VAO);
 
 	DestroyGLFW();
 
 	return ret;
 }
 
-int Main::RunGameLoop()
+int Main::RunGameLoop(Shader* shader, unsigned int& VAO)
 {
+	MouseControlledCamera m; // initialize the static fields
+	// mouse input
+	glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(m_window, MouseControlledCamera::MouseCallback);
+	glfwSetScrollCallback(m_window, MouseControlledCamera::ScrollCallback);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(m_window))
 	{
-		glfwSwapBuffers(m_window);
+		float currentFrame = (float)glfwGetTime();
+		m_deltaTime = currentFrame - m_lastFrame;
+		m_lastFrame = currentFrame;
+		ProcessKeyboardInput();
+
+		glClearColor(0.3f, 0.6f, 0.1f, 1.0f); // fill bg colour
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		shader->use();
+		MouseControlledCamera::GetLookDirection(m_lookDir);
+		glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
+		view = glm::lookAt(m_cameraPos, m_cameraPos + m_lookDir, m_worldUp);
+		projection = glm::perspective(MouseControlledCamera::fov, ((float)s_windowWidth) / s_windowHeight, 0.1f, 100.0f);
+		shader->setMat4("model", glm::value_ptr(model));
+		shader->setMat4("view", glm::value_ptr(view));
+		shader->setMat4("projection", glm::value_ptr(projection));
+
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
 		glfwPollEvents();
+		glfwSwapBuffers(m_window);
+
+
 	}
 	return 0;
+}
+
+void Main::ProcessKeyboardInput() {
+
+	if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(m_window, true);
+	}
+
+	float cameraSpeed = 2.5f * m_deltaTime;
+
+	if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
+		m_cameraPos += cameraSpeed * m_lookDir;
+	if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
+		m_cameraPos -= cameraSpeed * m_lookDir;
+	if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS)
+		m_cameraPos -= glm::normalize(glm::cross(m_lookDir, m_worldUp)) * cameraSpeed;
+	if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
+		m_cameraPos += glm::normalize(glm::cross(m_lookDir, m_worldUp)) * cameraSpeed;
 }
 
 int Main::LoadOpenGLFunctions()
@@ -97,3 +162,4 @@ void Main::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	s_windowHeight = height;
 	glViewport(0, 0, s_windowWidth, s_windowHeight);
 }
+
