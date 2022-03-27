@@ -42,7 +42,7 @@ int Main::Run()
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-	std::vector<std::string> textureImages = {
+	static std::vector<std::string> textureImages = {
 		"0.png",
 		"1.png",
 		"2.png",
@@ -102,12 +102,9 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		shader->setVec3("EyePos", m_cameraPos);
 
 		glBindVertexArray(VAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
 		glDrawElements(GL_TRIANGLES, sizeof(m_elements), GL_UNSIGNED_INT, 0);
 		glfwPollEvents();
 		glfwSwapBuffers(m_window);
-
-
 	}
 	return 0;
 }

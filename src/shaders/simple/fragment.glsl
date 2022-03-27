@@ -23,10 +23,10 @@ void main()
 		abs(1/eye.x) - TexCoord.x/eye.x,
 		abs(1/eye.z) - TexCoord.y/eye.z),
 		-1/eye.y);
-
-
-	vec3 index = parametricT * eye + vec3(TexCoord, 1.0);
-	FragColor = texture(cubemap, index);
+	FragColor = vec4(parametricT * eye, 1.0) / 2 + vec4(0.5, 0.5, 0.5, 0.0);
+//
+//	vec3 index = parametricT * eye + vec3(TexCoord, 1.0);
+//	FragColor = texture(cubemap, index);
 //	
 //	if (index.x < -0.99) {
 //		FragColor = vec4(1.0, 0.0, 0.0, 1.0);
