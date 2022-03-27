@@ -12,8 +12,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// image library
+#include <stb/stb_image.h>
+
 // C++ standard libraries
 #include <iostream>
+#include <vector>
 
 // Other headers in this project
 #include "Geometry.h"
@@ -90,7 +94,7 @@ public:
     Main(std::string appPath);
 	int Run();
 private:
-	int RunGameLoop(Shader* shader, unsigned int& VAO);
+	int RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID);
     void ProcessKeyboardInput();
 
 	int LoadOpenGLFunctions();

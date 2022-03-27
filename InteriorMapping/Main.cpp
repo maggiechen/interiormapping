@@ -1,6 +1,5 @@
 #include "Main.h"
 
-
 int main(int argc, char* argv[])
 {
 	std::string fullPathToExe = argv[0];
@@ -39,14 +38,39 @@ int Main::Run()
 	auto fragPath = m_appPath + "\\fragment.glsl";
 	Shader* shader = new Shader(vertPath.c_str(), fragPath.c_str());
 
-	RunGameLoop(shader, VAO);
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	std::vector<std::string> textureImages = {
+		"0.png",
+		"1.png",
+		"2.png",
+		"3.png",
+		"4.png",
+		"5.png"
+	};
+	int width, height, channelCount;
+	unsigned char* data;
+	for (unsigned int i = 0; i < textureImages.size(); i++) {
+		data = stbi_load((m_appPath + "\\" + textureImages[i]).c_str(), &width, &height, &channelCount, 0);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		stbi_image_free(data);
+	}
+
+	RunGameLoop(shader, VAO, textureID);
 
 	DestroyGLFW();
 
 	return ret;
 }
 
-int Main::RunGameLoop(Shader* shader, unsigned int& VAO)
+int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID)
 {
 	MouseControlledCamera m; // initialize the static fields
 	// mouse input
@@ -66,6 +90,7 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO)
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		glBindTexture(GL_TEXTURE_2D, textureID);
 		shader->use();
 		MouseControlledCamera::GetLookDirection(m_lookDir);
 		glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);

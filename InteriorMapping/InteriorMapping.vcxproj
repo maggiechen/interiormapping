@@ -154,6 +154,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MouseControlledCamera.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="StbImageEnabler.cpp" />
     <ClCompile Include="VertexBufferLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -162,8 +163,21 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\res\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\src\shaders\simple\fragment.glsl" />
     <None Include="..\src\shaders\simple\vertex.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\res\0.png" />
+    <Image Include="..\res\1.png" />
+    <Image Include="..\res\2.png" />
+    <Image Include="..\res\3.png" />
+    <Image Include="..\res\4.png" />
+    <Image Include="..\res\5.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
