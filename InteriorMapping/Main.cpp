@@ -33,7 +33,7 @@ int Main::Run()
 	
 	
 	unsigned int VAO;
-	Geometry::CreateRectangle(VAO, m_verticesCube, sizeof(m_verticesCube));
+	Geometry::CreateRectangle(VAO, m_verticesCube, sizeof(m_verticesCube), m_elements, sizeof(m_elements));
 	auto vertPath = m_appPath + "\\vertex.glsl";
 	auto fragPath = m_appPath + "\\fragment.glsl";
 	Shader* shader = new Shader(vertPath.c_str(), fragPath.c_str());
@@ -102,8 +102,8 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		shader->setVec3("EyePos", m_cameraPos);
 
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawElements(GL_TRIANGLES, sizeof(m_elements), GL_UNSIGNED_INT, 0);
 		glfwPollEvents();
 		glfwSwapBuffers(m_window);
 

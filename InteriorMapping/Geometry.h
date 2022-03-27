@@ -4,6 +4,6 @@
 class Geometry
 {
 public:
-    static void CreateRectangle(GLuint& VAO, const float* vertices, size_t size);
+    static void CreateRectangle(GLuint& VAO, const float* vertices, size_t size, const int* elements, size_t elemSize);
 
 };
