@@ -28,14 +28,14 @@ void MouseControlledCamera::MouseCallback(GLFWwindow* window, double xpos, doubl
 	// prevent big mouse jump when mouse first enters window
 	if (firstMouse)
 	{
-		lastX = xpos;
-		lastY = ypos;
+		lastX = (float) xpos;
+		lastY = (float) ypos;
 		firstMouse = false;
 	}
-	float xOffset = xpos - lastX;
-	float yOffset = - ypos + lastY; // negate this in an fps if player wants inverted up/down
-	lastX = xpos;
-	lastY = ypos;
+	float xOffset = (float) xpos - lastX;
+	float yOffset = (float) - ypos + lastY; // negate this in an fps if player wants inverted up/down
+	lastX = (float) xpos;
+	lastY = (float) ypos;
 	yaw += xOffset * m_sensitivity;
 	pitch += yOffset * m_sensitivity;
 	if (pitch > 89.0f)

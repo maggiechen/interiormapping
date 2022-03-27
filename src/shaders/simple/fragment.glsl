@@ -10,7 +10,10 @@ uniform samplerCube cubemap;
 void main()
 {
     vec3 bitangent = cross(Normal, Tangent);
-    mat3 worldToTangent = mat3(bitangent, Normal, Tangent);
+
+	// why do we need to transpose?
+    mat3 worldToTangent = transpose(mat3(Tangent, bitangent, Normal));
+
     vec3 eye = normalize(worldToTangent * normalize (EyePos - Position));
 
 
@@ -21,11 +24,18 @@ void main()
 
 	float parametricT = min(min(
 		abs(1/eye.x) - TexCoord.x/eye.x,
-		abs(1/eye.z) - TexCoord.y/eye.z),
-		-1/eye.y);
-	FragColor = vec4(parametricT * eye, 1.0) / 2 + vec4(0.5, 0.5, 0.5, 0.0);
-//
-//	vec3 index = parametricT * eye + vec3(TexCoord, 1.0);
+		abs(1/eye.y) - TexCoord.y/eye.y),
+		-1/eye.z);
+
+	// consistent
+	FragColor = (vec4(parametricT * eye, 2.0)) / 2 + vec4(0.5, 0.5, 0.5, 0.0);
+	// inconsistent
+//	FragColor = (vec4(parametricT * eye, 2.0) + vec4(TexCoord, 0.0, 0.0)) / 2 + vec4(0.5, 0.5, 0.5, 0.0);
+
+
+// INCONSISTENT
+	FragColor = vec4(TexCoord, 0.0, 0.0);
+//	vec3 index = parametricT * eye + vec3(TexCoord, 0.0);
 //	FragColor = texture(cubemap, index);
 //	
 //	if (index.x < -0.99) {
