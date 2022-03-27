@@ -147,6 +147,7 @@
     <ClInclude Include="MouseControlledCamera.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="VertexBufferLayout.h" />
+    <ClInclude Include="VertexData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\ThirdPartyLibs\Libs\glad.c" />
