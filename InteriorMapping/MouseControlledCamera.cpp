@@ -33,7 +33,7 @@ void MouseControlledCamera::MouseCallback(GLFWwindow* window, double xpos, doubl
 		firstMouse = false;
 	}
 	float xOffset = xpos - lastX;
-	float yOffset = ypos - lastY; // negate this in an fps if player wants inverted up/down
+	float yOffset = - ypos + lastY; // negate this in an fps if player wants inverted up/down
 	lastX = xpos;
 	lastY = ypos;
 	yaw += xOffset * m_sensitivity;
