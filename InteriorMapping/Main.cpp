@@ -74,6 +74,7 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO)
 		shader->setMat4("model", glm::value_ptr(model));
 		shader->setMat4("view", glm::value_ptr(view));
 		shader->setMat4("projection", glm::value_ptr(projection));
+		shader->setVec3("EyePos", m_cameraPos);
 
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);

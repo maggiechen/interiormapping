@@ -14,6 +14,6 @@ void Geometry::CreateRectangle(GLuint& VAO, const float* vertices, size_t size)
 
     // element buffer
 
-    VertexBufferLayout vertexBufferLayout(std::vector<int>{3, 2});
+    VertexBufferLayout vertexBufferLayout(std::vector<int>{3, 2, 3, 3});
     vertexBufferLayout.Process();
 }

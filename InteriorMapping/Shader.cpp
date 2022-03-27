@@ -114,3 +114,9 @@ void Shader::setMat4(const std::string& name, const GLfloat* matrix)
 	unsigned int loc = glGetUniformLocation(ID, name.c_str());
 	glUniformMatrix4fv(loc, 1, GL_FALSE, matrix);
 }
+
+void Shader::setVec3(const std::string& name, glm::vec3& vector)
+{
+	unsigned int loc = glGetUniformLocation(ID, name.c_str());
+	glUniform3f(loc, vector.x, vector.y, vector.z);
+}

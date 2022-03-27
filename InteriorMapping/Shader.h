@@ -6,6 +6,10 @@
 #include <fstream> // file stream
 #include <sstream> // string stream
 #include <iostream> // input/output stream
+#include <glm/fwd.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 class Shader
 {
 public:
@@ -18,5 +22,6 @@ public:
 	void setFloat2(const std::string& name, float value1, float value2);
 	void setFloat4(const std::string& name, float value1, float value2, float value3, float value4);
 	void setMat4(const std::string& name, const GLfloat* matrix);
+	void setVec3(const std::string& name, glm::vec3& vector);
 };
 
