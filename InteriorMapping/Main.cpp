@@ -187,4 +187,3 @@ void Main::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	s_windowHeight = height;
 	glViewport(0, 0, s_windowWidth, s_windowHeight);
 }
-

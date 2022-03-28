@@ -18,7 +18,6 @@ void Geometry::CreateRectangle(GLuint& VAO, const float* vertices, size_t size, 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, elemSize, elements, GL_STATIC_DRAW);
 
-
     VertexBufferLayout vertexBufferLayout(std::vector<int>{3, 2, 3, 3});
     vertexBufferLayout.Process();
 }
