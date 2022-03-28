@@ -42,6 +42,8 @@ int Main::Run()
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
+	//stbi_set_flip_vertically_on_load(true);
+
 	static std::vector<std::string> textureImages = {
 		"0.png",
 		"1.png",
