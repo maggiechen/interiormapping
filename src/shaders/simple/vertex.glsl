@@ -8,6 +8,7 @@ out vec2 TexCoord;
 out vec3 Tangent;
 out vec3 Normal;
 out vec3 Position;
+out vec3 ObjectPos;
 
 uniform vec3 EyePos;
 uniform mat4 model;
@@ -26,4 +27,5 @@ void main()
     Tangent = tangent;
     Normal = normal;
     Position = worldPos.xyz;
+    ObjectPos = aPos;
 }
