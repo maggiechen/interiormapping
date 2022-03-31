@@ -16,6 +16,9 @@ uniform mat4 projection;
 
 void main()
 {
+    // A non uniform scale matrix for the model is not supported as the uv coordinates
+    // cannot be adjusted according to the non uniform scale without using branching, which is expensive
+
     vec4 worldPos = model * vec4(aPos, 1.0);
     gl_Position = projection * view * worldPos;
 

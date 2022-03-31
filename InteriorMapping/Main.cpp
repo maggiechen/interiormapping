@@ -96,14 +96,19 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		glBindTexture(GL_TEXTURE_2D, textureID);
 		shader->use();
 		MouseControlledCamera::GetLookDirection(m_lookDir);
+		
+		// Set model, view, and projection matrices to identity matrix
 		glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
+
+		model = glm::scale(model, glm::vec3(3.0, 3.0, 3.0));
+
 		view = glm::lookAt(m_cameraPos, m_cameraPos + m_lookDir, m_worldUp);
 		projection = glm::perspective(MouseControlledCamera::fov, ((float)s_windowWidth) / s_windowHeight, 0.1f, 100.0f);
 		shader->setMat4("model", glm::value_ptr(model));
 		shader->setMat4("view", glm::value_ptr(view));
 		shader->setMat4("projection", glm::value_ptr(projection));
 		shader->setVec3("EyePos", m_cameraPos);
-
+		shader->setInt("StoriesCount", 3);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, sizeof(Elements), GL_UNSIGNED_INT, 0);
 		glfwPollEvents();

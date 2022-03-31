@@ -5,7 +5,9 @@ in vec2 TexCoord;
 in vec3 Tangent;
 in vec3 Normal;
 uniform vec3 EyePos;
-uniform samplerCube cubemap;
+uniform samplerCube CubeMap;
+
+uniform int StoriesCount; // vertically, the number of rooms to render inside the mesh
 
 void main()
 {
@@ -36,7 +38,7 @@ void main()
 		index = rot * index;
 	}
 
-	FragColor = texture(cubemap, index);
+	FragColor = texture(CubeMap, index);
 
 	// DEBUGGING
 //	FragColor = vec4(eye / 2 + vec3(0.5, 0.5, 0.5), 1.0); // OK
