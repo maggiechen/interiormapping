@@ -103,8 +103,6 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		shader->setMat4("view", glm::value_ptr(view));
 		shader->setMat4("projection", glm::value_ptr(projection));
 		shader->setVec3("EyePos", m_cameraPos);
-		static glm::vec3 WorldUp = glm::vec3(0.0, 1.0, 0.0);
-		shader->setVec3("WorldUp", WorldUp);
 
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, sizeof(Elements), GL_UNSIGNED_INT, 0);

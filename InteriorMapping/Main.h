@@ -31,8 +31,8 @@ class Main
 private:
     std::string m_appPath;
 
-    glm::vec3 m_cameraPos =     glm::vec3(0.0f, 0.0f, 3.0f); // start position
-    glm::vec3 m_lookDir =   glm::vec3(0.0, 0.0, -1.0f); // looking down local negative z axis
+    glm::vec3 m_cameraPos =     glm::vec3(0.0f, -3.0f, 0.0f); // start position
+    glm::vec3 m_lookDir =   glm::vec3(0.0, 0.0, -1.0f); // initial look direction
     glm::vec3 m_worldUp =       glm::vec3(0.0, 1.0f, 0.0); // world up vector (+y axis)
 	static int s_windowWidth;
 	static int s_windowHeight;

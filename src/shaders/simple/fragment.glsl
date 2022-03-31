@@ -5,7 +5,6 @@ in vec2 TexCoord;
 in vec3 Tangent;
 in vec3 Normal;
 uniform vec3 EyePos;
-uniform vec3 WorldUp;
 uniform samplerCube cubemap;
 
 void main()
@@ -27,13 +26,22 @@ void main()
 	// of the interior space, but 1 unit before it.
 	vec3 index = parametricT * eye + vec3(TexCoord.xy, 1.0);
 	
-	// rotate the final position based on the direction the normal faces
-	// so that the walls don't jump when we turn a corner
-	vec3 rotatedX = cross(WorldUp, Normal);
-	mat3 rot = mat3(rotatedX, WorldUp, Normal);
+	// Rotation
+	{
+		// rotate the final position based on the direction the normal faces
+		// so that the walls don't jump when we turn a corner
+		vec3 rotatedX = cross(Tangent, Normal);
+		mat3 rot = mat3(rotatedX, Tangent, Normal);
 
-	index = rot * index;
+		index = rot * index;
+	}
 
 	FragColor = texture(cubemap, index);
+//	FragColor = vec4(eye / 2 + vec3(0.5, 0.5, 0.5), 1.0); // OK
+//	FragColor = vec4(parametricT, 0.0, 0.0, 1.0); // PROBLEM here. 
+//
+//	float x = abs(1/eye.x);
+//	FragColor = vec4(x / 10, 0.0, 0.0, 1.0); // PROBLEM here. 
 
+//	FragColor = vec4(vec3(TexCoord.xy, 1.0), 1.0); // OK
 }
