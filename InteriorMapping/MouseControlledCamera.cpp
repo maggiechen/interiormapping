@@ -44,7 +44,6 @@ void MouseControlledCamera::MouseCallback(GLFWwindow* window, double xpos, doubl
 		pitch = -89.0f;
 }
 
-
 void MouseControlledCamera::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	fov -= (float)yoffset * m_sensitivity;
