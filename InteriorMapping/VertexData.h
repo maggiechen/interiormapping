@@ -48,8 +48,8 @@ static constexpr float VerticesCube[264] = {
 
 static constexpr int Elements[36] = {
     // -Z
-    0, 1, 2,
-    2, 3, 0,
+    2, 1, 0,
+    0, 3, 2,
     // +Z
     4, 5, 6,
     6, 7, 4,
@@ -57,8 +57,8 @@ static constexpr int Elements[36] = {
     8, 9, 10,
     10, 11, 8,
     // +X
-    12, 13, 14,
-    14, 15, 12,
+    14, 13, 12,
+    12, 15, 14,
     // -Y
     16, 17, 18,
     18, 19, 16,

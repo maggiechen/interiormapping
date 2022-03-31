@@ -79,7 +79,8 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 	glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(m_window, MouseControlledCamera::MouseCallback);
 	glfwSetScrollCallback(m_window, MouseControlledCamera::ScrollCallback);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(m_window))
 	{
