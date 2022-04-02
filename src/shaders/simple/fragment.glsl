@@ -8,11 +8,14 @@ in vec3 Normal;
 uniform vec3 EyePos;
 uniform samplerCube CubeMap;
 
+uniform float WorldToObjectScaleX;
+uniform float WorldToObjectScaleY;
+
+uniform float RoomWidth;
 uniform float RoomHeight;
 
 // ASSUMPTIONS:
-// We assume the pivot of the object is in the very center of the mesh.
-// We assume the object's bottom is at y = 0
+// We assume the pivot of the object is at y = 0, in the center.
 
 
 // DEBUG FUNCTIONS ============
@@ -42,6 +45,12 @@ float objectSpaceToInteriorSpace1(float f)
 	return 2 * f - 1;
 }
 
+//intersectPoint.y
+//yBottom
+float scaledTextureAxis(float intersectPointValue, float lowerBoundPlaneValue, float roomSizeInObjectSpaceForAxis)
+{
+	return 2 * (interiorSpaceToObjectSpace1(intersectPointValue) - interiorSpaceToObjectSpace1(lowerBoundPlaneValue))/roomSizeInObjectSpaceForAxis - 1;
+}
 
 void main()
 {
@@ -54,23 +63,36 @@ void main()
     vec3 eye = -normalize(worldToTangent * (EyePos - Position));
 	
 	// on [0, 1]
-	float RoomHeightInObjectSpace = RoomHeight * ObjectPos.y / Position.y;
+	float RoomWidthInObjectSpace = RoomWidth * WorldToObjectScaleX;
+	float RoomHeightInObjectSpace = RoomHeight * WorldToObjectScaleY;
 
-	float roomCountContinuous = Position.y/RoomHeight;
+	float verticalRoomCountContinuous = Position.y/RoomHeight;
 
-	// on [-1, 1]
-	float yTop = objectSpaceToInteriorSpace1(ceil(roomCountContinuous) * RoomHeightInObjectSpace);
-	float yBottom = objectSpaceToInteriorSpace1(floor(roomCountContinuous) * RoomHeightInObjectSpace);
-	
+
+	// translate the x since it's on [-1, 1] right now
+	float ObjectToWorldScale = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
+	float PosXRepivoted = ObjectToWorldScale / 2 + Position.x;
+	float horizontalRoomCountContinuous = PosXRepivoted / RoomWidth;
+
+	// Get the planes for intersection, all in interior space [-1, 1]
+	// positive x
+	float xRight = objectSpaceToInteriorSpace1(ceil(horizontalRoomCountContinuous) * RoomWidthInObjectSpace);
+	// negative x
+	float xLeft = objectSpaceToInteriorSpace1(floor(horizontalRoomCountContinuous) * RoomWidthInObjectSpace);
+	// positive y
+	float yTop = objectSpaceToInteriorSpace1(ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace);
+	// negative y
+	float yBottom = objectSpaceToInteriorSpace1(floor(verticalRoomCountContinuous) * RoomHeightInObjectSpace);
+
 	// Get parameter T for optimal y plane intersection
 	float yTopIntersectT = yTop/eye.y-TexCoord.y/eye.y;
 	float yBottomIntersectT = yBottom/eye.y-TexCoord.y/eye.y;
 	float yIntersectionT = max(yTopIntersectT, yBottomIntersectT);
 
 	// Get parameter T for optimal x plane intersection
-	float xBottomIntersectT = (1/eye.x) - (TexCoord.x/eye.x);
-	float xTopIntersectT = (-1/eye.x) - (TexCoord.x/eye.x);
-	float xIntersectionT = max(xBottomIntersectT, xTopIntersectT);
+	float xRightIntersectT = (xRight/eye.x) - (TexCoord.x/eye.x);
+	float xLeftIntersectT = (xLeft/eye.x) - (TexCoord.x/eye.x);
+	float xIntersectionT = max(xRightIntersectT, xLeftIntersectT);
 
 	// Get parameter T for optimal intersection among x and y plane intersections
 	float xyIntersectionT = min(xIntersectionT, yIntersectionT);
@@ -86,8 +108,8 @@ void main()
 
 	// Scale texture indexing so that wall samples stretch and repeat to fit room size
 	vec3 textureCoord = vec3(
-		intersectPoint.x,
-		2 * (interiorSpaceToObjectSpace1(intersectPoint.y) - interiorSpaceToObjectSpace1(yBottom))/RoomHeightInObjectSpace - 1,
+		scaledTextureAxis(intersectPoint.x, xLeft, RoomWidthInObjectSpace),
+		scaledTextureAxis(intersectPoint.y, yBottom, RoomHeightInObjectSpace),
 		intersectPoint.z
 	);
 	
@@ -112,12 +134,12 @@ void main()
 //	FragColor = vec4(vec3(TexCoord.xy, 1.0), 1.0); // OK
 //	FragColor = vec4(textureCoord * 0.5 + vec3(0.5, 05, 0.5), 1.0);
 //	FragColor = vec4(Position.y, Position.y, Position.y, 1.0);
-//	FragColor = vec4(roomCountContinuous, roomCountContinuous, roomCountContinuous, 1.0);
+//	FragColor = vec4(verticalRoomCountContinuous, verticalRoomCountContinuous, verticalRoomCountContinuous, 1.0);
 
 //	FragColor = vec4(
-//		ceil(roomCountContinuous) * RoomHeightInObjectSpace,
-//		ceil(roomCountContinuous) * RoomHeightInObjectSpace,
-//		ceil(roomCountContinuous) * RoomHeightInObjectSpace, 1.0);
+//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace,
+//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace,
+//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace, 1.0);
 //	FragColor = vec4(interiorSpaceToObjectSpace(yIntersectionT * eye.y + TexCoord.y), 1.0);
 	
 //	FragColor = vec4(vec3(yTopIntersectT, yTopIntersectT, yTopIntersectT), 1.0);
