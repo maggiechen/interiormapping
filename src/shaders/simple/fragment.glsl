@@ -29,6 +29,7 @@ vec3 interiorSpaceToObjectSpace(float spaceVal)
 }
 // ====
 
+// Return 1/(1+e^f)
 float sigmoid(float f)
 {
 	float e = 2.71828;
@@ -36,18 +37,18 @@ float sigmoid(float f)
 	return 1 / (1 + exponent);
 }
 
+// Convert 1 value from object space [0, 1] to interior space [-1, 1]
 float interiorSpaceToObjectSpace1(float spaceVal)
 {
 	return spaceVal * 0.5 + 0.5;
 }
 
+// Convert 1 value from interior space [-1, 1] to object space [0, 1]
 float objectSpaceToInteriorSpace1(float f)
 {
 	return 2 * f - 1;
 }
 
-//intersectPoint.y
-//yBottom
 float scaledTextureAxis(float intersectPointValue, float lowerBoundPlaneValue, float roomSizeInObjectSpaceForAxis)
 {
 	return 2 * (interiorSpaceToObjectSpace1(intersectPointValue) - interiorSpaceToObjectSpace1(lowerBoundPlaneValue))/roomSizeInObjectSpaceForAxis - 1;
@@ -95,8 +96,6 @@ void main()
 	float horizontalRoomSize = abs(dot(bitangent, vec3(RoomWidth, 0, RoomDepth)));
 	float horizontalRoomCountContinuous = PosXRepivoted / horizontalRoomSize;
 
-
-
 	// Get the planes for intersection, all in interior space [-1, 1]
 	// positive x
 	float xRight = objectSpaceToInteriorSpace1(ceil(horizontalRoomCountContinuous) * RoomHorizontalSizeInObjectSpace);
@@ -120,21 +119,23 @@ void main()
 	// Get parameter T for optimal intersection among x and y plane intersections
 	float xyIntersectionT = min(xIntersectionT, yIntersectionT);
 
+	float RoomHorizontalDepthSizeInObjectSpace = abs(dot(Normal, vec3(RoomWidthInObjectSpace, 0, RoomDepthInObjectSpace)));
+	float zPlaneToUse = 1 - RoomHorizontalDepthSizeInObjectSpace;
+
 	// Get parameter T for optimal intersection among x, y, and z plane intersections
 	float parametricT = min(
 		xyIntersectionT,
-		-2/eye.z); // assume the z component of the eye vector is in the positive z axis
+		(zPlaneToUse - 1)/eye.z); // assume the z component of the eye vector is in the positive z axis
 
 	// need z = 1.0 because the raycast starts from the entry position, which is not the origin
 	// of the interior space, but 1 unit before it.
 	vec3 intersectPoint = parametricT * eye + vec3(TexCoord.xy, 1.0);
 
 	// Scale texture indexing so that wall samples stretch and repeat to fit room size
-	vec3 textureCoord = vec3(
-		scaledTextureAxis(intersectPoint.x, xLeft, RoomHorizontalSizeInObjectSpace),
-		scaledTextureAxis(intersectPoint.y, yBottom, RoomHeightInObjectSpace),
-		intersectPoint.z
-	);
+	float u = scaledTextureAxis(intersectPoint.x, xLeft, RoomHorizontalSizeInObjectSpace);
+	float v = scaledTextureAxis(intersectPoint.y, yBottom, RoomHeightInObjectSpace);
+	float t = scaledTextureAxis(intersectPoint.z, zPlaneToUse, RoomHorizontalDepthSizeInObjectSpace);
+	vec3 textureCoord = vec3(u, v, t);
 	
 	// Rotation
 	// rotate the final position based on the direction the normal faces
@@ -175,5 +176,13 @@ void main()
 //	FragColor = vec4(interiorSpaceToObjectSpace(yBottom), 1.0);
 //	FragColor = vec4(PosXRepivoted, 0.0, 0.0, 1.0);
 //	FragColor = vec4(bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, 1.0);
-//	FragColor = vec4(interiorSpaceToObjectSpace(xRight), 1.0);
+//	FragColor = vec4(interiorSpaceToObjectSpace(t), 1.0);
+//	float zPlaneV = interiorSpaceToObjectSpace1(zPlaneToUse);
+//	float thing = interiorSpaceToObjectSpace1(intersectPoint.z) - zPlaneV;
+//	float c = (thing)/RoomHorizontalDepthSizeInObjectSpace;
+//	FragColor = vec4(thing, thing, thing, 1.0);
+//	FragColor = vec4(RoomHorizontalDepthSizeInObjectSpace, RoomHorizontalDepthSizeInObjectSpace, RoomHorizontalDepthSizeInObjectSpace, 1.0);
+//	FragColor = vec4(c, c, c, 1.0);
+//	FragColor = vec4(zPlaneV, zPlaneV, zPlaneV, 1.0); // makes sense
+//	FragColor = vec4(u, u, u, 1.0);
 }
