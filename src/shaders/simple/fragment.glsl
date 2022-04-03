@@ -20,20 +20,19 @@ uniform float RoomHeight;
 
 // DEBUG FUNCTIONS ============
 //
-//vec3 interiorSpaceToObjectSpace(float spaceVal)
-//{
-//	float piece = spaceVal * 0.5 + 0.5;
-//	return vec3(piece, piece, piece);
-//}
-//
+vec3 interiorSpaceToObjectSpace(float spaceVal)
+{
+	float piece = spaceVal * 0.5 + 0.5;
+	return vec3(piece, piece, piece);
+}
+// ====
 
-//float sigmoid(float f)
-//{
-//	float e = 2.71828;
-//	float exponent = pow(e, -f);
-//	return 1 / (1 + exponent);
-//}
-
+float sigmoid(float f)
+{
+	float e = 2.71828;
+	float exponent = pow(e, -f);
+	return 1 / (1 + exponent);
+}
 
 float interiorSpaceToObjectSpace1(float spaceVal)
 {
@@ -68,10 +67,20 @@ void main()
 
 	float verticalRoomCountContinuous = Position.y/RoomHeight;
 
-
 	// translate the x since it's on [-1, 1] right now
 	float ObjectToWorldScale = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
-	float PosXRepivoted = ObjectToWorldScale / 2 + Position.x;
+	
+	vec3 posXCandidates = vec3(Position.x, 0, Position.z);
+	
+	float halfFace = 0.5 * ObjectToWorldScale;
+
+	// multiply 1000 to make the sigmoid function almost a step function
+	float bitangentSign = dot(vec3(1, 1, 1), bitangent) * 1000;
+//	float bumpForNegativeAxisBitangentScenario = 1 - sigmoid(bitangentSign);
+	float PosXRepivoted =
+		dot(posXCandidates, bitangent)
+		+ halfFace;
+
 	float horizontalRoomCountContinuous = PosXRepivoted / RoomWidth;
 
 	// Get the planes for intersection, all in interior space [-1, 1]
@@ -143,11 +152,14 @@ void main()
 //	FragColor = vec4(interiorSpaceToObjectSpace(yIntersectionT * eye.y + TexCoord.y), 1.0);
 	
 //	FragColor = vec4(vec3(yTopIntersectT, yTopIntersectT, yTopIntersectT), 1.0);
-//	FragColor = vec4(vec3(yBottomIntersectT, yBottomIntersectT, yBottomIntersectT), 1.0);
+//	FragColor = vec4(vec3(xRightIntersectT, xRightIntersectT, xRightIntersectT), 1.0);
 //	FragColor = vec4(vec3(parametricT, parametricT, parametricT), 1.0);
 //	FragColor = vec4(intersectPoint, 1.0);
 
 //	FragColor = vec4(sigmoid(10* eye.x), 0.0, 0.0, 1.0);
 //	FragColor = vec4(vec3(xyIntersectionT, xyIntersectionT, xyIntersectionT), 1.0);
 //	FragColor = vec4(interiorSpaceToObjectSpace(yBottom), 1.0);
+//	FragColor = vec4(horizontalRoomCountContinuous/6, 0.0, 0.0, 1.0);
+//	FragColor = vec4(bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, 1.0);
+//	FragColor = vec4(interiorSpaceToObjectSpace(xRight), 1.0);
 }
