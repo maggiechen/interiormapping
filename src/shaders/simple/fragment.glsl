@@ -22,20 +22,20 @@ uniform float RoomDepth;
 
 // DEBUG FUNCTIONS ============
 //
-vec3 interiorSpaceToObjectSpace(float spaceVal)
-{
-	float piece = spaceVal * 0.5 + 0.5;
-	return vec3(piece, piece, piece);
-}
+//vec3 interiorSpaceToObjectSpace(float spaceVal)
+//{
+//	float piece = spaceVal * 0.5 + 0.5;
+//	return vec3(piece, piece, piece);
+//}
+//
+//// Return 1/(1+e^f)
+//float sigmoid(float f)
+//{
+//	float e = 2.71828;
+//	float exponent = pow(e, -f);
+//	return 1 / (1 + exponent);
+//}
 // ====
-
-// Return 1/(1+e^f)
-float sigmoid(float f)
-{
-	float e = 2.71828;
-	float exponent = pow(e, -f);
-	return 1 / (1 + exponent);
-}
 
 // Convert 1 value from object space [0, 1] to interior space [-1, 1]
 float interiorSpaceToObjectSpace1(float spaceVal)
@@ -68,44 +68,44 @@ void main()
 	float RoomWidthInObjectSpace = RoomWidth * WorldToObjectScaleX;
 	float RoomHeightInObjectSpace = RoomHeight * WorldToObjectScaleY;
 	float RoomDepthInObjectSpace = RoomDepth * WorldToObjectScaleZ;
-	float LocalRoomWidthInObjectSpace = abs(dot(bitangent, vec3(RoomWidthInObjectSpace, 0, RoomDepthInObjectSpace)));
-	float LocalRoomDepthInObjectSpace = abs(dot(Normal, vec3(RoomWidthInObjectSpace, 0, RoomDepthInObjectSpace)));
-
-	float verticalRoomCountContinuous = Position.y/RoomHeight;
+	float LocalRoomWidthInObjectSpace = abs(dot(Normal, vec3(RoomDepthInObjectSpace, RoomDepthInObjectSpace, RoomWidthInObjectSpace)));
+	float LocalRoomDepthInObjectSpace = abs(dot(Normal, vec3(RoomWidthInObjectSpace, RoomHeightInObjectSpace, RoomDepthInObjectSpace)));
+	float LocalRoomHeightInObjectSpace = abs(dot(Normal, vec3(RoomHeightInObjectSpace, RoomWidthInObjectSpace, RoomHeightInObjectSpace)));
 
 	// translate the x and z since they're on [-1, 1] right now
 	float ObjectToWorldScaleX = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
 	float ObjectToWorldScaleZ = 1 / WorldToObjectScaleZ; // TODO: this would be better as a uniform
 	
-
-	vec3 posXCandidates = vec3(Position.x, 0, Position.z);
+	vec3 localPosXCandidates = vec3(-Position.z, Position.z, Position.x);
 	
 	// we don't support different scales along axes yet so this isn't quite necessary
 	// but doing this in case we do in the future
 	float halfFaceX = 0.5 * ObjectToWorldScaleX;
 	float halfFaceZ = 0.5 * ObjectToWorldScaleZ;
-	vec3 shiftXCandidates = vec3(halfFaceX, 0, halfFaceZ);
+	vec3 shiftXCandidates = vec3(halfFaceZ, halfFaceZ, halfFaceX);
 
-	// multiply 1000 to make the sigmoid function almost a step function
-//	float bitangentSign = dot(vec3(1, 1, 1), bitangent) * 1000;
-//	float bumpForNegativeAxisBitangentScenario = 1 - sigmoid(bitangentSign);
+	float LocalPosX =
+		dot(Normal, localPosXCandidates)
+		+ abs(dot(Normal, shiftXCandidates));
 
-	float PosXRepivoted =
-		dot(posXCandidates, bitangent)
-		+ abs(dot(bitangent, shiftXCandidates));
+	float localHorizontalRoomSize = abs(dot(Normal, vec3(RoomDepth, RoomDepth, RoomWidth)));
+	float localHorizontalRoomCountContinuous = LocalPosX / localHorizontalRoomSize;
 
-	float horizontalRoomSize = abs(dot(bitangent, vec3(RoomWidth, 0, RoomDepth)));
-	float horizontalRoomCountContinuous = PosXRepivoted / horizontalRoomSize;
+	// Handle local "vertical" rooms. For x/z faces this is the y axis, for y faces this is the x axis.
+	vec3 localPosYCandidates = vec3(Position.y, Position.x, Position.y);
+	float LocalPosY = dot(abs(Normal), localPosYCandidates) + abs(dot(Normal, vec3(0, 1, 0))) * halfFaceX;
+	float localVerticalRoomSize = abs(dot(Normal, vec3(RoomHeight, RoomWidth, RoomHeight)));
+	float localVerticalRoomCountContinuous = LocalPosY/localVerticalRoomSize;
 
 	// Get the planes for intersection, all in interior space [-1, 1]
 	// positive x
-	float xRight = objectSpaceToInteriorSpace1(ceil(horizontalRoomCountContinuous) * LocalRoomWidthInObjectSpace);
+	float xRight = objectSpaceToInteriorSpace1(ceil(localHorizontalRoomCountContinuous) * LocalRoomWidthInObjectSpace);
 	// negative x
-	float xLeft = objectSpaceToInteriorSpace1(floor(horizontalRoomCountContinuous) * LocalRoomWidthInObjectSpace);
+	float xLeft = objectSpaceToInteriorSpace1(floor(localHorizontalRoomCountContinuous) * LocalRoomWidthInObjectSpace);
 	// positive y
-	float yTop = objectSpaceToInteriorSpace1(ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace);
+	float yTop = objectSpaceToInteriorSpace1(ceil(localVerticalRoomCountContinuous) * LocalRoomHeightInObjectSpace);
 	// negative y
-	float yBottom = objectSpaceToInteriorSpace1(floor(verticalRoomCountContinuous) * RoomHeightInObjectSpace);
+	float yBottom = objectSpaceToInteriorSpace1(floor(localVerticalRoomCountContinuous) * LocalRoomHeightInObjectSpace);
 
 	// Get parameter T for optimal y plane intersection
 	float yTopIntersectT = (yTop - TexCoord.y)/eye.y;
@@ -133,7 +133,7 @@ void main()
 
 	// Scale texture indexing so that wall samples stretch and repeat to fit room size
 	float u = scaledTextureAxis(intersectPoint.x, xLeft, LocalRoomWidthInObjectSpace);
-	float v = scaledTextureAxis(intersectPoint.y, yBottom, RoomHeightInObjectSpace);
+	float v = scaledTextureAxis(intersectPoint.y, yBottom, LocalRoomHeightInObjectSpace);
 	float t = scaledTextureAxis(intersectPoint.z, zPlaneToUse, LocalRoomDepthInObjectSpace);
 	vec3 textureCoord = vec3(u, v, t);
 	
@@ -143,7 +143,6 @@ void main()
 	{
 		vec3 rotatedX = cross(Tangent, Normal);
 		mat3 rot = mat3(rotatedX, Tangent, Normal);
-
 		textureCoord = rot * textureCoord;
 	}
 
@@ -152,18 +151,18 @@ void main()
 	// DEBUGGING
 //	FragColor = vec4(Position.y/RoomHeight, 0.0, 0.0, 1.0);
 //	FragColor = vec4(eye / 2 + vec3(0.5, 0.5, 0.5), 1.0); // OK
-//	FragColor = vec4(parametricT, 0.0, 0.0, 1.0); // PROBLEM here. 
+//	FragColor = vec4(yIntersectionT, 0.0, 0.0, 1.0); // PROBLEM here. 
 //	float y = abs(TexCoord.y/eye.y);
 //	FragColor = vec4(y / 10, 0.0, 0.0, 1.0); // PROBLEM here. 
 //	FragColor = vec4(vec3(TexCoord.xy, 1.0), 1.0); // OK
 //	FragColor = vec4(textureCoord * 0.5 + vec3(0.5, 05, 0.5), 1.0);
 //	FragColor = vec4(Position.y, Position.y, Position.y, 1.0);
-//	FragColor = vec4(verticalRoomCountContinuous, verticalRoomCountContinuous, verticalRoomCountContinuous, 1.0);
+//	FragColor = vec4(localVerticalRoomCountContinuous, localVerticalRoomCountContinuous, localVerticalRoomCountContinuous, 1.0);
 
 //	FragColor = vec4(
-//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace,
-//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace,
-//		ceil(verticalRoomCountContinuous) * RoomHeightInObjectSpace, 1.0);
+//		ceil(localVerticalRoomCountContinuous) * RoomHeightInObjectSpace,
+//		ceil(localVerticalRoomCountContinuous) * RoomHeightInObjectSpace,
+//		ceil(localVerticalRoomCountContinuous) * RoomHeightInObjectSpace, 1.0);
 //	FragColor = vec4(interiorSpaceToObjectSpace(yIntersectionT * eye.y + TexCoord.y), 1.0);
 	
 //	FragColor = vec4(vec3(yTopIntersectT, yTopIntersectT, yTopIntersectT), 1.0);
@@ -174,7 +173,7 @@ void main()
 //	FragColor = vec4(sigmoid(10* eye.x), 0.0, 0.0, 1.0);
 //	FragColor = vec4(vec3(xyIntersectionT, xyIntersectionT, xyIntersectionT), 1.0);
 //	FragColor = vec4(interiorSpaceToObjectSpace(yBottom), 1.0);
-//	FragColor = vec4(PosXRepivoted, 0.0, 0.0, 1.0);
+//	FragColor = vec4(LocalPosX, 0.0, 0.0, 1.0);
 //	FragColor = vec4(bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, 1.0);
 //	FragColor = vec4(interiorSpaceToObjectSpace(t), 1.0);
 //	float zPlaneV = interiorSpaceToObjectSpace1(zPlaneToUse);
@@ -184,6 +183,6 @@ void main()
 //	FragColor = vec4(LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, 1.0);
 //	FragColor = vec4(c, c, c, 1.0);
 //	FragColor = vec4(zPlaneV, zPlaneV, zPlaneV, 1.0); // makes sense
-////	FragColor = vec4(u, u, u, 1.0);
+//	FragColor = vec4(localVerticalRoomCountContinuous / 6, localVerticalRoomCountContinuous/ 6, localVerticalRoomCountContinuous /6, 1.0);
 	
 }
