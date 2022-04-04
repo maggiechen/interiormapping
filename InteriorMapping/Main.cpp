@@ -40,8 +40,6 @@ int Main::Run()
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-
 	stbi_set_flip_vertically_on_load(true);
 
 	static std::vector<std::string> textureImages = {
@@ -50,10 +48,47 @@ int Main::Run()
 		"2.png",
 		"3.png",
 		"4.png",
-		"5.png"
+		"5.png",
+		"right.png",
+		"left.png",
+		"top.png",
+		"bottom.png",
+		"front.png",
+		"back.png"
 	};
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, textureID);
+	glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_RGBA, 512, 512, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	int width, height, channelCount;
 	unsigned char* data;
+
+	for (unsigned int i = 0; i < textureImages.size(); i++) {
+		data = stbi_load((m_appPath + "\\" + textureImages[i]).c_str(), &width, &height, &channelCount, 0);
+		glTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i / 6, 0, 0, i, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		stbi_image_free(data);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	//SetCubeMap(textureImages);
+
+	//SetCubeMap(bgImages);
+
+	RunGameLoop(shader, VAO, textureID);
+
+	DestroyGLFW();
+
+	return ret;
+}
+
+void Main::SetCubeMap(std::vector<std::string>& textureImages)
+{
+	int width, height, channelCount;
+	unsigned char* data;
+	
 	for (unsigned int i = 0; i < textureImages.size(); i++) {
 		data = stbi_load((m_appPath + "\\" + textureImages[i]).c_str(), &width, &height, &channelCount, 0);
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -64,12 +99,6 @@ int Main::Run()
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		stbi_image_free(data);
 	}
-
-	RunGameLoop(shader, VAO, textureID);
-
-	DestroyGLFW();
-
-	return ret;
 }
 
 int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID)
@@ -93,7 +122,8 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glBindTexture(GL_TEXTURE_2D, textureID);
+		//glBindTexture(GL_TEXTURE_2D, textureID);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, bgTextureID);
 		shader->use();
 		MouseControlledCamera::GetLookDirection(m_lookDir);
 		

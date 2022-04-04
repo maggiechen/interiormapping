@@ -84,5 +84,23 @@
     <Image Include="..\res\5.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="..\res\back.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\bottom.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\front.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\left.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\right.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\top.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

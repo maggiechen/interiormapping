@@ -42,6 +42,7 @@ private:
 public:
     Main(std::string appPath);
 	int Run();
+	void SetCubeMap(std::vector<std::string>& textureImages);
 private:
 	int RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID);
     void ProcessKeyboardInput();

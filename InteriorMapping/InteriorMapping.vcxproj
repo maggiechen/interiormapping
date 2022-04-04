@@ -179,6 +179,12 @@
     <Image Include="..\res\3.png" />
     <Image Include="..\res\4.png" />
     <Image Include="..\res\5.png" />
+    <Image Include="..\res\back.jpg" />
+    <Image Include="..\res\bottom.jpg" />
+    <Image Include="..\res\front.jpg" />
+    <Image Include="..\res\left.jpg" />
+    <Image Include="..\res\right.jpg" />
+    <Image Include="..\res\top.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
