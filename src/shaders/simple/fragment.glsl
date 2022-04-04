@@ -58,12 +58,49 @@ void main()
 {
     vec3 bitangent = cross(Tangent, Normal);
 
-	// TODO: why do we need to transpose?
     mat3 worldToTangent = transpose(mat3(bitangent, Tangent, Normal));
+	// Q: Why do we need to transpose here?
+	// A: When we want to transform a vector from coordinate frame A to coordinate frame B,
+	// we need to use the transpose(inverse(T)) where T is the transformation matrix
+	// When the transformation matrix is a basis matrix (3 orthonormal vectors), the inverse
+	// is simply the transpose, which means you get transpose(transpose(T)) = T
+	// 
+	// However, in our situation, note that we are NOT transforming the eye vector itself
+	// from one position to another. Instead, we want to express the eye vector, which
+	// is currently in world space, in terms of what its values would be in tangent space.
+	// "Expressing in terms of" instead of "transforming into" means we actually want inverse(T).
 
-	// the vector going towards the interior surface from the entry position
-    vec3 eye = -normalize(worldToTangent * (EyePos - Position));
+	// You can confirm this by trying out this basic rotation:
+	//	+-------------------------+                +---------------------------+
+	//	|                         |                |                           |
+	//	|    y ^                  |                |          ^ x              |
+	//	|      |      vector v    |                |          |     vector v   |
+	//	|      |    ----->        |                |          |   -------->    |
+	//	|      |                  |                |          |                |
+	//	|      |                  |       <-+      |          |                |
+	//	|      +---------->       |         |      |  <-------+------->        |
+	//	|      |         x        |                |  y               -y       |
+	//	|      |                  |     rotate     |                           |
+	//	|      |    |             |    90 degrees  |                           |
+	//	|   -y |    | vector v'   |     ccw        |                           |
+	//	|      v    |             |                |                           |
+	//	|           |             |                |                           |
+	//	|           v             |                |                           |
+	//	|                         |                |                           |
+	//	+-------------------------+                +---------------------------+
+	//     BEFORE TRANSFORMATION						AFTER TRANSFORMATION
+	// The transformation is a 90 degree rotation of the coordinate frame itself.
+	// Since the goal isn't to move vector v, it stays in the same location after
+	// the transformation is applied. From v's point of view, the effective
+	// transformation is the exact inverse (which turns v into v'), a
+	// 90 degree CLOCKWISE rotation
+
+	// In our case, since we're using a basis matrix T, inverse(T) = transpose(T)
+	// (Transposes are a lot easier on the GPU than inverses, which are expensive to compute)
 	
+    vec3 eye = -normalize(worldToTangent * (EyePos - Position));
+	// ^ the vector going towards the interior surface from the entry position
+
 	// on [0, 1]
 	float RoomWidthInObjectSpace = RoomWidth * WorldToObjectScaleX;
 	float RoomHeightInObjectSpace = RoomHeight * WorldToObjectScaleY;
