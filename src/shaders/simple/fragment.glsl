@@ -108,19 +108,19 @@ void main()
 	float yBottom = objectSpaceToInteriorSpace1(floor(verticalRoomCountContinuous) * RoomHeightInObjectSpace);
 
 	// Get parameter T for optimal y plane intersection
-	float yTopIntersectT = yTop/eye.y-TexCoord.y/eye.y;
-	float yBottomIntersectT = yBottom/eye.y-TexCoord.y/eye.y;
+	float yTopIntersectT = (yTop - TexCoord.y)/eye.y;
+	float yBottomIntersectT = (yBottom - TexCoord.y)/eye.y;
 	float yIntersectionT = max(yTopIntersectT, yBottomIntersectT);
 
 	// Get parameter T for optimal x plane intersection
-	float xRightIntersectT = (xRight/eye.x) - (TexCoord.x/eye.x);
-	float xLeftIntersectT = (xLeft/eye.x) - (TexCoord.x/eye.x);
+	float xRightIntersectT = (xRight - TexCoord.x)/eye.x;
+	float xLeftIntersectT = (xLeft - TexCoord.x)/eye.x;
 	float xIntersectionT = max(xRightIntersectT, xLeftIntersectT);
 
 	// Get parameter T for optimal intersection among x and y plane intersections
 	float xyIntersectionT = min(xIntersectionT, yIntersectionT);
 
-	float zPlaneToUse = 1 - LocalRoomDepthInObjectSpace;
+	float zPlaneToUse = 1 - LocalRoomDepthInObjectSpace * 2; // object space is .5 of interior space, which is what we need to use
 
 	// Get parameter T for optimal intersection among x, y, and z plane intersections
 	float parametricT = min(
@@ -169,7 +169,7 @@ void main()
 //	FragColor = vec4(vec3(yTopIntersectT, yTopIntersectT, yTopIntersectT), 1.0);
 //	FragColor = vec4(vec3(xRightIntersectT, xRightIntersectT, xRightIntersectT), 1.0);
 //	FragColor = vec4(vec3(parametricT, parametricT, parametricT), 1.0);
-	FragColor = vec4(intersectPoint, 1.0);
+//	FragColor = vec4(intersectPoint, 1.0);
 
 //	FragColor = vec4(sigmoid(10* eye.x), 0.0, 0.0, 1.0);
 //	FragColor = vec4(vec3(xyIntersectionT, xyIntersectionT, xyIntersectionT), 1.0);
@@ -184,6 +184,6 @@ void main()
 //	FragColor = vec4(LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, 1.0);
 //	FragColor = vec4(c, c, c, 1.0);
 //	FragColor = vec4(zPlaneV, zPlaneV, zPlaneV, 1.0); // makes sense
-//	FragColor = vec4(u, u, u, 1.0);
+////	FragColor = vec4(u, u, u, 1.0);
 	
 }
