@@ -82,6 +82,18 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
+	glm::vec3 matColor = glm::vec3(0.2f, 0.3f, 0.5f);
+	glm::vec3 specColor = glm::vec3(1.0, 1.0, 1.0); // let's say our material is an insulator
+	glm::vec3 lightColor = glm::vec3(1.0f, 0.9f, 0.8f);
+	glm::vec3 ambientColor = glm::vec3(0.03f, 0.03f, 0.03f);
+
+	float pointLightAttenuationDistance = 10.0f;
+	float shininess = 24.0;
+
+	constexpr float spotLightInnerAngle = glm::pi<float>() / 6;
+	constexpr float spotLightOuterAngle = glm::pi<float>() / 5.5f;
+	float spotLightOuterAngleTerm = glm::cos(spotLightOuterAngle / 2);
+	float spotLightRangeTerm = glm::cos(spotLightInnerAngle / 2) - glm::cos(spotLightOuterAngle / 2);
 	while (!glfwWindowShouldClose(m_window))
 	{
 		float currentFrame = (float)glfwGetTime();
@@ -96,23 +108,44 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		glBindTexture(GL_TEXTURE_2D, textureID);
 		shader->use();
 		MouseControlledCamera::GetLookDirection(m_lookDir);
-		
-		// Set model, view, and projection matrices to identity matrix
-		glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
-		float scaleX = 3.0f;
-		float scaleY = 3.0f;
-		float scaleZ = 3.0f;
-		model = glm::scale(model, glm::vec3(scaleX, scaleY, scaleZ));
-		view = glm::lookAt(m_cameraPos, m_cameraPos + m_lookDir, m_worldUp);
-		projection = glm::perspective(MouseControlledCamera::fov, ((float)s_windowWidth) / s_windowHeight, 0.1f, 100.0f);
-		shader->setMat4("model", glm::value_ptr(model));
-		shader->setMat4("view", glm::value_ptr(view));
-		shader->setMat4("projection", glm::value_ptr(projection));
 		shader->setVec3("EyePos", m_cameraPos);
 
-		shader->setFloat("WorldToObjectScaleX", (float)1.0/scaleX);
-		shader->setFloat("WorldToObjectScaleY", (float)1.0/scaleY);
-		shader->setFloat("WorldToObjectScaleZ", (float)1.0/scaleZ);
+		// lighted component
+		{
+			glm::vec3 lightPosition = glm::vec3(5 * sin(glfwGetTime()) + 1.0f, 6.0f, 5 * cos(glfwGetTime()));
+			glm::vec3 spotLightDir = glm::normalize(-lightPosition);
+			shader->setVec3("SpotLightDirection", spotLightDir);
+			shader->setVec3("LightPosition", lightPosition);
+			shader->setVec3("MaterialColor", matColor);
+			shader->setFloat("Shininess", shininess);
+			shader->setVec3("SpecularColor", specColor);
+			shader->setVec3("LightColor", lightColor);
+			shader->setVec3("AmbientColor", ambientColor);
+			shader->setFloat("PointLightAttenuationDistance", pointLightAttenuationDistance);
+			shader->setFloat("SpotLightOuterAngleTerm", spotLightOuterAngleTerm);
+			shader->setFloat("SpotLightRangeTerm", spotLightRangeTerm);
+		}
+
+		// model, view, projection matrices
+		{
+			// Set model, view, and projection matrices to identity matrix
+			glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
+			float scaleX = 3.0f;
+			float scaleY = 3.0f;
+			float scaleZ = 3.0f;
+			model = glm::scale(model, glm::vec3(scaleX, scaleY, scaleZ));
+			view = glm::lookAt(m_cameraPos, m_cameraPos + m_lookDir, m_worldUp);
+			projection = glm::perspective(MouseControlledCamera::fov, ((float)s_windowWidth) / s_windowHeight, 0.1f, 100.0f);
+
+			shader->setMat4("model", glm::value_ptr(model));
+			shader->setMat4("view", glm::value_ptr(view));
+			shader->setMat4("projection", glm::value_ptr(projection));
+
+			shader->setFloat("WorldToObjectScaleX", (float)1.0 / scaleX);
+			shader->setFloat("WorldToObjectScaleY", (float)1.0 / scaleY);
+			shader->setFloat("WorldToObjectScaleZ", (float)1.0 / scaleZ);
+
+		}
 
 		shader->setFloat("RoomHeight", 1.0);
 		shader->setFloat("RoomWidth", 0.5);
