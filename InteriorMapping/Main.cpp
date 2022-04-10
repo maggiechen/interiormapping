@@ -98,6 +98,8 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 	{
 		float currentFrame = (float)glfwGetTime();
 		m_deltaTime = currentFrame - m_lastFrame;
+		if (!m_pause)
+			m_gameTime += m_deltaTime;
 		m_lastFrame = currentFrame;
 		ProcessKeyboardInput();
 
@@ -112,7 +114,7 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 
 		// lighted component
 		{
-			glm::vec3 lightPosition = glm::vec3(5 * sin(glfwGetTime()) + 1.0f, 6.0f, 5 * cos(glfwGetTime()));
+			glm::vec3 lightPosition = glm::vec3(5 * sin(m_gameTime) + 1.0f, 6.0f, 5 * cos(m_gameTime));
 			glm::vec3 spotLightDir = glm::normalize(-lightPosition);
 			shader->setVec3("SpotLightDirection", spotLightDir);
 			shader->setVec3("LightPosition", lightPosition);
@@ -175,6 +177,10 @@ void Main::ProcessKeyboardInput() {
 		m_cameraPos -= glm::normalize(glm::cross(m_lookDir, m_worldUp)) * cameraSpeed;
 	if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
 		m_cameraPos += glm::normalize(glm::cross(m_lookDir, m_worldUp)) * cameraSpeed;
+	if (glfwGetKey(m_window, GLFW_KEY_SPACE) == GLFW_PRESS && m_lastFrame - m_lastPauseToggle > m_keyPressDurationThreshold) {
+		m_pause = !m_pause;
+		m_lastPauseToggle = m_lastFrame;
+	}
 }
 
 int Main::LoadOpenGLFunctions()

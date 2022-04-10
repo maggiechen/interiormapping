@@ -50,6 +50,15 @@ float sigmoid(float f)
 	return 1 / (1 + exponent);
 }
 
+vec3 maxByLength(vec3 a, vec3 b)
+{
+	if (length(a) > length(b))
+	{
+		return a;
+	}
+	return b;
+}
+
 // Convert 1 value from object space [0, 1] to interior space [-1, 1]
 float interiorSpaceToObjectSpace1(float spaceVal)
 {
@@ -69,8 +78,46 @@ float scaledTextureAxis(float intersectPointValue, float lowerBoundPlaneValue, f
 
 void main()
 {
+	float reflectAmount = 0.0;
+	float transmitAmount = 1 - reflectAmount;
 	vec3 eyeVec = normalize(EyePos - Position);
-	vec4 interiorColour;
+
+	// all done in world space
+	vec3 unnormalizedLightVec = LightPosition - Position;
+	float distanceToLight = length(unnormalizedLightVec);
+	vec3 lightVec = normalize(unnormalizedLightVec);
+	vec3 diffuse = dot(lightVec, Normal) * MaterialColor;
+	vec3 halfVec = normalize(lightVec + eyeVec);
+
+	vec3 specular = pow(max(0, dot(Normal, halfVec)), Shininess) * SpecularColor;
+	// half vectors are annoying because it can allow light to contribute even when it's below the surface.
+	// Need to account for this.
+	
+	// This mask will be 0 when light is below surface, 1 when above. The 1000 is to make the sigmoid like a step func
+	float lightMask = sigmoid(1000*dot(lightVec, Normal));
+	
+	// We'll apply it in the final lightComponent because the spot light calculation has
+	// a similar problem of contributing even when the light is below the surface.
+
+	// max(0, 1 - (d^2 / r^2)) ^ 2
+	// source: https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
+	float pointLightAtten = pow(max(0, 1 - pow(distanceToLight / PointLightAttenuationDistance, 2)), 2);
+
+	float spotLightAtten;
+	// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
+
+	{
+		// dotSpotLight defines where along the spot light penumbra we are
+		float dotSpotLight = max(0, dot(-lightVec, SpotLightDirection)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
+		// this creates the attenuation over the range from the inner angle to the outer angle of the spotlight
+		float spotLightFn = (dotSpotLight - SpotLightOuterAngleTerm) / SpotLightRangeTerm;
+		// clamp over [0, 1] and raise to the power of 2
+		spotLightAtten = pow(clamp(spotLightFn, 0.0, 1.0), 2);
+	}
+
+	vec3 lightComponent = (diffuse + specular) * LightColor * pointLightAtten * spotLightAtten * lightMask + AmbientColor;
+
+	vec3 interiorColour;
 	{
 		vec3 bitangent = cross(Tangent, Normal);
 
@@ -117,6 +164,12 @@ void main()
 		// "eye" will be the eye vector in tangent space.
 		vec3 eye = -normalize(worldToTangent * eyeVec);
 		// ^ the vector going towards the interior surface from the entry position
+
+		// "light" will be the light vector in tangent space
+		vec3 light = normalize(worldToTangent * lightVec);
+
+		// "spotLightDir" will be the spot light direction in tangent space
+		vec3 spotLightDir = normalize(worldToTangent * SpotLightDirection);
 
 		// on [0, 1]
 		float RoomWidthInObjectSpace = RoomWidth * WorldToObjectScaleX;
@@ -189,19 +242,58 @@ void main()
 		float u = scaledTextureAxis(intersectPoint.x, xLeft, LocalRoomWidthInObjectSpace);
 		float v = scaledTextureAxis(intersectPoint.y, yBottom, LocalRoomHeightInObjectSpace);
 		float t = scaledTextureAxis(intersectPoint.z, zPlaneToUse, LocalRoomDepthInObjectSpace);
-		vec3 textureCoord = vec3(u, v, t);
-	
+		vec3 preRotTextureCoord = vec3(u, v, t);
+		vec3 textureCoord;
 		// Rotation
 		// rotate the final position based on the direction the normal faces
 		// so that the walls don't jump when we turn a corner
 		{
 			vec3 rotatedX = cross(Tangent, Normal);
 			mat3 rot = mat3(rotatedX, Tangent, Normal);
-			textureCoord = rot * textureCoord;
+			textureCoord = rot * preRotTextureCoord ;
 		}
 
-		interiorColour = texture(CubeMap, textureCoord);
+		// find the normal of the interior surface that was struck, in stretched texture tangent space
+		// using component-wise vector multiply to ascertain the axis the plane resides in
+		vec3 planeAxisHit = maxByLength(
+			abs(preRotTextureCoord) * vec3(1,0,0),
+			maxByLength(
+				abs(preRotTextureCoord) * vec3(0,1,0),
+				abs(preRotTextureCoord) * vec3(0,0,1)));
+		// account for negative/positive plane by multiplying again with the intersection point
+		vec3 planeHit = planeAxisHit * preRotTextureCoord;
+		// the normal should be the inverse
+		vec3 planeHitNormal = -planeHit;
+		
+		vec3 diffuseComponent = texture(CubeMap, textureCoord).xyz * dot(light, planeHitNormal);
 
+
+		float tangentSpotLightAtten;
+		float tangentLightMask;
+		// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
+		vec3 debug;
+		{
+			vec3 lightVecToIntersectionWithPlaneInTangentSpace = 
+				normalize(
+					light -
+					(intersectPoint * 0.5 + vec3(0.5, 0.5, 0.5)));
+			debug = lightVecToIntersectionWithPlaneInTangentSpace;
+			// tangentDotSpotLight defines where along the spot light penumbra we are
+			float tangentDotSpotLight = max(0, dot(-lightVecToIntersectionWithPlaneInTangentSpace, spotLightDir)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
+			// this creates the attenuation over the range from the inner angle to the outer angle of the spotlight
+			float tangentSpotLightFn = (tangentDotSpotLight  - SpotLightOuterAngleTerm) / SpotLightRangeTerm;
+			// clamp over [0, 1] and raise to the power of 2
+			tangentSpotLightAtten = pow(clamp(tangentSpotLightFn , 0.0, 1.0), 2);
+
+			tangentLightMask = step(dot(planeHitNormal, lightVecToIntersectionWithPlaneInTangentSpace), 0);
+
+			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
+		}
+
+		// TODO: specular, point.
+		interiorColour = transmitAmount  * diffuseComponent * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+		interiorColour = debug;
+//		interiorColour = maxByLength(abs(textureCoord) * vec3(1,0,0), abs(textureCoord) * vec3(0,1,0));
 		// DEBUGGING
 	//	FragColor = vec4(Position.y/RoomHeight, 0.0, 0.0, 1.0);
 	//	FragColor = vec4(eye / 2 + vec3(0.5, 0.5, 0.5), 1.0); // OK
@@ -240,47 +332,9 @@ void main()
 	//	FragColor = vec4(localVerticalRoomCountContinuous / 6, localVerticalRoomCountContinuous/ 6, localVerticalRoomCountContinuous /6, 1.0);
 	}
 
-	vec4 lightComponent;
-	
-	// all done in world space
-	vec3 unnormalizedLightVec = LightPosition - Position;
-	float distanceToLight = length(unnormalizedLightVec);
-	vec3 lightVec = normalize(unnormalizedLightVec);
-	vec3 diffuse = dot(lightVec, Normal) * MaterialColor;
-	vec3 halfVec = normalize(lightVec + eyeVec);
-
-	vec3 specular = pow(max(0, dot(Normal, halfVec)), Shininess) * SpecularColor;
-	// half vectors are annoying because it can allow light to contribute even when it's below the surface.
-	// Need to account for this.
-	
-	// This mask will be 0 when light is below surface, 1 when above. The 1000 is to make the sigmoid like a step func
-	float lightMask = sigmoid(1000*dot(lightVec, Normal));
-	
-	// We'll apply it in the final lightComponent because the spot light calculation has
-	// a similar problem of contributing even when the light is below the surface.
-
-	// max(0, 1 - (d^2 / r^2)) ^ 2
-	// source: https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
-	float pointLightAtten = pow(max(0, 1 - pow(distanceToLight / PointLightAttenuationDistance, 2)), 2);
-
-	float spotLightAtten;
-	// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
-
-	{
-		// dotSpotLight defines where along the spot light penumbra we are
-		float dotSpotLight = max(0, dot(-lightVec, SpotLightDirection)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
-		// this creates the attenuation over the range from the inner angle to the outer angle of the spotlight
-		float spotLightFn = (dotSpotLight - SpotLightOuterAngleTerm) / SpotLightRangeTerm;
-		// clamp over [0, 1] and raise to the power of 2
-		spotLightAtten = pow(clamp(spotLightFn, 0.0, 1.0), 2);
-	}
-
-	vec3 lightComponentColor = (diffuse + specular) * LightColor * pointLightAtten * spotLightAtten * lightMask + AmbientColor;
-	lightComponent = vec4(lightComponentColor, 1.0);
-	
 
 //	FragColor = vec4(dot(l, Normal), dot(l, Normal), dot(l, Normal), 1.0);
 //	FragColor = vec4(MaterialColor, 1.0);
-	FragColor = mix(interiorColour, lightComponent, 0.9);
+	FragColor = vec4(interiorColour + lightComponent * reflectAmount, 1.0);
 //	FragColor = vec4(spotLightAtten, spotLightAtten, spotLightAtten, 1.0);
 }

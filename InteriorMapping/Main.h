@@ -30,15 +30,18 @@ class Main
 {
 private:
     std::string m_appPath;
-
+	bool m_pause = false;
     glm::vec3 m_cameraPos =     glm::vec3(0.0f, 0.0f, 6.0f); // start position
     glm::vec3 m_lookDir =   glm::vec3(0.0, 0.0, -1.0f); // initial look direction
     glm::vec3 m_worldUp =       glm::vec3(0.0, 1.0f, 0.0); // world up vector (+y axis)
+	float m_keyPressDurationThreshold = 0.5f;
 	static int s_windowWidth;
 	static int s_windowHeight;
 	GLFWwindow* m_window;
     float m_deltaTime = 0.0f;
     float m_lastFrame = 0.0f;
+	float m_lastPauseToggle = 0.0f;
+	float m_gameTime = 0.0f;
 public:
     Main(std::string appPath);
 	int Run();
