@@ -121,7 +121,7 @@ void main()
 	{
 		vec3 bitangent = cross(Tangent, Normal);
 
-		mat3 worldToTangent = transpose(mat3(bitangent, Tangent, Normal));
+		mat3 inverseWorldToTangent = transpose(mat3(bitangent, Tangent, Normal));
 		// Q: Why do we need to transpose here?
 		// A: When we want to transform a vector from coordinate frame A to coordinate frame B,
 		// we need to use the transpose(inverse(T)) where T is the transformation matrix
@@ -162,14 +162,14 @@ void main()
 		// (Transposes are a lot easier on the GPU than inverses, which are expensive to compute)
 
 		// "eye" will be the eye vector in tangent space.
-		vec3 eye = -normalize(worldToTangent * eyeVec);
+		vec3 eye = -normalize(inverseWorldToTangent * eyeVec);
 		// ^ the vector going towards the interior surface from the entry position
 
 		// "light" will be the light vector in tangent space
-		vec3 light = normalize(worldToTangent * lightVec);
+		vec3 light = normalize(inverseWorldToTangent * lightVec);
 
 		// "spotLightDir" will be the spot light direction in tangent space
-		vec3 spotLightDir = normalize(worldToTangent * SpotLightDirection);
+		vec3 spotLightDir = normalize(inverseWorldToTangent * SpotLightDirection);
 
 		// on [0, 1]
 		float RoomWidthInObjectSpace = RoomWidth * WorldToObjectScaleX;
@@ -182,6 +182,11 @@ void main()
 		// translate the x and z since they're on [-1, 1] right now
 		float ObjectToWorldScaleX = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
 		float ObjectToWorldScaleZ = 1 / WorldToObjectScaleZ; // TODO: this would be better as a uniform
+		float ObjectToWorldScaleY = 1 / WorldToObjectScaleY;
+
+		float LocalBuildingWidthInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleZ, ObjectToWorldScaleZ, ObjectToWorldScaleX)));
+		float LocalBuildingDepthInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleZ, ObjectToWorldScaleZ, ObjectToWorldScaleX)));
+		float LocalBuildingHeightInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleY, ObjectToWorldScaleX, ObjectToWorldScaleY)));
 	
 		vec3 localPosXCandidates = vec3(-Position.z, Position.z, Position.x);
 	
@@ -236,12 +241,12 @@ void main()
 
 		// need z = 1.0 because the raycast starts from the entry position, which is not the origin
 		// of the interior space, but 1 unit before it.
-		vec3 intersectPoint = parametricT * eye + vec3(TexCoord.xy, 1.0);
+		vec3 intersectPointInInteriorSpace = parametricT * eye + vec3(TexCoord.xy, 1.0);
 
 		// Scale texture indexing so that wall samples stretch and repeat to fit room size
-		float u = scaledTextureAxis(intersectPoint.x, xLeft, LocalRoomWidthInObjectSpace);
-		float v = scaledTextureAxis(intersectPoint.y, yBottom, LocalRoomHeightInObjectSpace);
-		float t = scaledTextureAxis(intersectPoint.z, zPlaneToUse, LocalRoomDepthInObjectSpace);
+		float u = scaledTextureAxis(intersectPointInInteriorSpace.x, xLeft, LocalRoomWidthInObjectSpace);
+		float v = scaledTextureAxis(intersectPointInInteriorSpace.y, yBottom, LocalRoomHeightInObjectSpace);
+		float t = scaledTextureAxis(intersectPointInInteriorSpace.z, zPlaneToUse, LocalRoomDepthInObjectSpace);
 		vec3 preRotTextureCoord = vec3(u, v, t);
 		vec3 textureCoord;
 		// Rotation
@@ -273,11 +278,20 @@ void main()
 		// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
 		vec3 debug;
 		{
-			vec3 lightVecToIntersectionWithPlaneInTangentSpace = 
-				normalize(
-					light -
-					(intersectPoint * 0.5 + vec3(0.5, 0.5, 0.5)));
-			debug = lightVecToIntersectionWithPlaneInTangentSpace;
+			vec3 intersectionInTangentSpace = 0.5 * vec3(intersectPointInInteriorSpace.x, intersectPointInInteriorSpace.y, intersectPointInInteriorSpace.z - 1) * vec3(LocalBuildingWidthInWorldSpace, LocalBuildingHeightInWorldSpace, LocalBuildingDepthInWorldSpace);
+
+			vec4 translate = vec4(0, 0.5*ObjectToWorldScaleY, 0, 0) + vec4(0.5 * LocalBuildingDepthInWorldSpace * Normal, 1);
+			mat4 inverseWorldToTangentTranslateMat = mat4(
+				vec4(1, 0, 0, 0),
+				vec4(0, 1, 0, 0),
+				vec4(0, 0, 1, 0),
+				-translate);
+			
+			vec3 lightPositionInTangentSpace = inverseWorldToTangent * (inverseWorldToTangentTranslateMat * vec4(LightPosition, 1)).xyz;
+
+
+			vec3 lightVecToIntersectionWithPlaneInTangentSpace = normalize(lightPositionInTangentSpace - intersectionInTangentSpace);
+
 			// tangentDotSpotLight defines where along the spot light penumbra we are
 			float tangentDotSpotLight = max(0, dot(-lightVecToIntersectionWithPlaneInTangentSpace, spotLightDir)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
 			// this creates the attenuation over the range from the inner angle to the outer angle of the spotlight
@@ -288,11 +302,23 @@ void main()
 			tangentLightMask = step(dot(planeHitNormal, lightVecToIntersectionWithPlaneInTangentSpace), 0);
 
 			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
+			debug = spotLightDir;
+
+			debug = lightPositionInTangentSpace;
+			debug = -lightVecToIntersectionWithPlaneInTangentSpace; // this should go into negatives.
+			debug = spotLightDir;
+
+//			debug = intersectionInTangentSpace 
+			debug = vec3(tangentDotSpotLight, tangentDotSpotLight, tangentDotSpotLight);
+//			debug = vec3(tangentSpotLightFn, tangentSpotLightFn, tangentSpotLightFn);
+			debug = vec3(tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask);
 		}
 
 		// TODO: specular, point.
-		interiorColour = transmitAmount  * diffuseComponent * tangentSpotLightAtten * tangentLightMask + AmbientColor;
-		interiorColour = debug;
+		interiorColour = transmitAmount  * diffuseComponent;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+		interiorColour = transmitAmount  * diffuseComponent + debug;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+
+//		interiorColour = debug;
 //		interiorColour = maxByLength(abs(textureCoord) * vec3(1,0,0), abs(textureCoord) * vec3(0,1,0));
 		// DEBUGGING
 	//	FragColor = vec4(Position.y/RoomHeight, 0.0, 0.0, 1.0);
@@ -314,7 +340,7 @@ void main()
 	//	FragColor = vec4(vec3(yTopIntersectT, yTopIntersectT, yTopIntersectT), 1.0);
 	//	FragColor = vec4(vec3(xRightIntersectT, xRightIntersectT, xRightIntersectT), 1.0);
 	//	FragColor = vec4(vec3(parametricT, parametricT, parametricT), 1.0);
-	//	FragColor = vec4(intersectPoint, 1.0);
+	//	FragColor = vec4(intersectPointInInteriorSpace, 1.0);
 
 	//	FragColor = vec4(sigmoid(10* eye.x), 0.0, 0.0, 1.0);
 	//	FragColor = vec4(vec3(xyIntersectionT, xyIntersectionT, xyIntersectionT), 1.0);
@@ -323,7 +349,7 @@ void main()
 	//	FragColor = vec4(bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, bumpForNegativeAxisBitangentScenario, 1.0);
 	//	FragColor = vec4(interiorSpaceToObjectSpace(t), 1.0);
 	//	float zPlaneV = interiorSpaceToObjectSpace1(zPlaneToUse);
-	//	float thing = interiorSpaceToObjectSpace1(intersectPoint.z) - zPlaneV;
+	//	float thing = interiorSpaceToObjectSpace1(intersectPointInInteriorSpace.z) - zPlaneV;
 	//	float c = (thing)/LocalRoomDepthInObjectSpace;
 	//	FragColor = vec4(thing, thing, thing, 1.0);
 	//	FragColor = vec4(LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, LocalRoomDepthInObjectSpace, 1.0);
