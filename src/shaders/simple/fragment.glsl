@@ -78,7 +78,7 @@ float scaledTextureAxis(float intersectPointValue, float lowerBoundPlaneValue, f
 
 void main()
 {
-	float reflectAmount = 0.0;
+	float reflectAmount = 0.5;
 	float transmitAmount = 1 - reflectAmount;
 	vec3 eyeVec = normalize(EyePos - Position);
 
@@ -272,9 +272,10 @@ void main()
 		
 		vec3 diffuseComponent = texture(CubeMap, textureCoord).xyz * dot(light, planeHitNormal);
 
-
 		float tangentSpotLightAtten;
 		float tangentLightMask;
+		vec3 interiorSpecular;
+		float interiorPointLightAtten;
 		// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
 		vec3 debug;
 		{
@@ -288,8 +289,6 @@ void main()
 				-translate);
 			
 			vec3 lightPositionInTangentSpace = inverseWorldToTangent * (inverseWorldToTangentTranslateMat * vec4(LightPosition, 1)).xyz;
-
-
 			vec3 lightVecAtIntersectionWithPlaneInTangentSpace = normalize(lightPositionInTangentSpace - intersectionInTangentSpace);
 
 			// tangentDotSpotLight defines where along the spot light penumbra we are
@@ -303,26 +302,36 @@ void main()
 			// reversing them by accident will flip the effect.
 			tangentLightMask = step(0, dot(planeHitNormal, lightVecAtIntersectionWithPlaneInTangentSpace));
 
-			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
-			debug = spotLightDir;
+			vec3 tangentHalfVec = normalize(lightVecAtIntersectionWithPlaneInTangentSpace - eye); // *note that we inverted the eye vector. now we need to undo that if we want the half vec
+			interiorSpecular = pow(max(0, dot(planeHitNormal, tangentHalfVec)), Shininess) * SpecularColor;
 
-			debug = lightPositionInTangentSpace;
-			debug = -lightVecAtIntersectionWithPlaneInTangentSpace; // this should go into negatives.
-			debug = spotLightDir;
+			
+			// max(0, 1 - (d^2 / r^2)) ^ 2
+			// source: https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
+			float distanceToLightFromIntersection = length(lightPositionInTangentSpace - intersectionInTangentSpace);
+			interiorPointLightAtten = pow(max(0, 1 - pow(distanceToLightFromIntersection / PointLightAttenuationDistance, 2)), 2);
+
+
+
+//			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
+//			debug = spotLightDir;
+//
+//			debug = lightPositionInTangentSpace;
+//			debug = -lightVecAtIntersectionWithPlaneInTangentSpace; // this should go into negatives.
+//			debug = spotLightDir;
 
 //			debug = intersectionInTangentSpace 
 //			debug = vec3(tangentDotSpotLight, tangentDotSpotLight, tangentDotSpotLight);
-			debug = vec3(tangentLightMask , tangentLightMask , tangentLightMask );
+//			debug = vec3(tangentLightMask , tangentLightMask , tangentLightMask );
 //			debug = vec3(tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask);
-//			debug = lightVecAtIntersectionWithPlaneInTangentSpace;
+			debug = tangentHalfVec;
+//			debug = vec3(dot(planeHitNormal, tangentHalfVec), dot(planeHitNormal, tangentHalfVec), dot(planeHitNormal, tangentHalfVec));
 		}
 
-		// TODO: specular, point.
-		interiorColour = transmitAmount  * diffuseComponent * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+		interiorColour = transmitAmount * (diffuseComponent + interiorSpecular) * tangentSpotLightAtten * tangentLightMask * interiorPointLightAtten + AmbientColor;
 //		interiorColour = tangentSpotLightAtten * tangentLightMask + AmbientColor;
 
 //		interiorColour = debug;
-//		interiorColour = maxByLength(abs(textureCoord) * vec3(1,0,0), abs(textureCoord) * vec3(0,1,0));
 		// DEBUGGING
 	//	FragColor = vec4(Position.y/RoomHeight, 0.0, 0.0, 1.0);
 	//	FragColor = vec4(eye / 2 + vec3(0.5, 0.5, 0.5), 1.0); // OK
