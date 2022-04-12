@@ -86,10 +86,10 @@ int Main::RunGameLoop(Shader* shader, Shader* shader2, unsigned int& VAO, unsign
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-	glm::vec3 matColor = glm::vec3(0.2f, 0.3f, 0.5f);
-	glm::vec3 specColor = glm::vec3(1.0, 1.0, 1.0); // let's say our material is an insulator
-	glm::vec3 lightColor = glm::vec3(1.0f, 0.9f, 0.8f);
-	glm::vec3 ambientColor = glm::vec3(0.03f, 0.03f, 0.03f);
+	glm::vec3 matColor = glm::vec3(0.2f, 0.3f, 0.3f);
+	glm::vec3 specColor = glm::vec3(3.0, 3.0, 4.0); // let's say our material is an insulator
+	glm::vec3 lightColor = glm::vec3(2.0f, 1.7f, 1.0f);
+	glm::vec3 ambientColor = glm::vec3(0.1f, 0.03f, 0.1f);
 
 	float pointLightAttenuationDistance = 10.0f;
 	float shininess = 24.0;
@@ -107,7 +107,7 @@ int Main::RunGameLoop(Shader* shader, Shader* shader2, unsigned int& VAO, unsign
 		m_lastFrame = currentFrame;
 		ProcessKeyboardInput();
 
-		glClearColor(0.3f, 0.6f, 0.1f, 1.0f); // fill bg colour
+		glClearColor(0.1f, 0.05f, 0.08f, 1.0f); // fill bg colour
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

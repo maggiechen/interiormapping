@@ -89,7 +89,7 @@ void main()
 	vec3 diffuse = dot(lightVec, Normal) * MaterialColor;
 	vec3 halfVec = normalize(lightVec + eyeVec);
 
-	vec3 specular = pow(max(0, dot(Normal, halfVec)), Shininess) * SpecularColor;
+	vec3 specular = pow(max(0, dot(Normal, halfVec)), Shininess * 1.5) * SpecularColor; // we'll make the external glass a lot shinier
 	// half vectors are annoying because it can allow light to contribute even when it's below the surface.
 	// Need to account for this.
 	
@@ -117,11 +117,16 @@ void main()
 
 	vec3 lightComponent = (diffuse + specular) * LightColor * pointLightAtten * spotLightAtten * lightMask + AmbientColor;
 
+	float ObjectToWorldScaleX = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
+	float ObjectToWorldScaleZ = 1 / WorldToObjectScaleZ; // TODO: this would be better as a uniform
+	float ObjectToWorldScaleY = 1 / WorldToObjectScaleY;
+
 	vec3 interiorColour;
 	{
 		vec3 bitangent = cross(Tangent, Normal);
 
 		mat3 inverseWorldToTangent = transpose(mat3(bitangent, Tangent, Normal));
+		{
 		// Q: Why do we need to transpose here?
 		// A: When we want to transform a vector from coordinate frame A to coordinate frame B,
 		// we need to use the transpose(inverse(T)) where T is the transformation matrix
@@ -160,7 +165,7 @@ void main()
 
 		// In our case, since we're using a basis matrix T, inverse(T) = transpose(T)
 		// (Transposes are a lot easier on the GPU than inverses, which are expensive to compute)
-
+		}
 		// "eye" will be the eye vector in tangent space.
 		vec3 eye = -normalize(inverseWorldToTangent * eyeVec);
 		// ^ the vector going towards the interior surface from the entry position
@@ -180,10 +185,6 @@ void main()
 		float LocalRoomHeightInObjectSpace = abs(dot(Normal, vec3(RoomHeightInObjectSpace, RoomWidthInObjectSpace, RoomHeightInObjectSpace)));
 
 		// translate the x and z since they're on [-1, 1] right now
-		float ObjectToWorldScaleX = 1 / WorldToObjectScaleX; // TODO: this would be better as a uniform
-		float ObjectToWorldScaleZ = 1 / WorldToObjectScaleZ; // TODO: this would be better as a uniform
-		float ObjectToWorldScaleY = 1 / WorldToObjectScaleY;
-
 		float LocalBuildingWidthInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleZ, ObjectToWorldScaleZ, ObjectToWorldScaleX)));
 		float LocalBuildingDepthInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleZ, ObjectToWorldScaleZ, ObjectToWorldScaleX)));
 		float LocalBuildingHeightInWorldSpace = abs(dot(Normal, vec3(ObjectToWorldScaleY, ObjectToWorldScaleX, ObjectToWorldScaleY)));
@@ -277,7 +278,6 @@ void main()
 		vec3 interiorSpecular;
 		float interiorPointLightAtten;
 		// calculate spot light attenuation using formula from https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
-		vec3 debug;
 		{
 			vec3 intersectionInTangentSpace = 0.5 * vec3(intersectPointInInteriorSpace.x, intersectPointInInteriorSpace.y, intersectPointInInteriorSpace.z - 1) * vec3(LocalBuildingWidthInWorldSpace, LocalBuildingHeightInWorldSpace, LocalBuildingDepthInWorldSpace);
 
@@ -304,14 +304,11 @@ void main()
 
 			vec3 tangentHalfVec = normalize(lightVecAtIntersectionWithPlaneInTangentSpace - eye); // *note that we inverted the eye vector. now we need to undo that if we want the half vec
 			interiorSpecular = pow(max(0, dot(planeHitNormal, tangentHalfVec)), Shininess) * SpecularColor;
-
 			
 			// max(0, 1 - (d^2 / r^2)) ^ 2
 			// source: https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/
 			float distanceToLightFromIntersection = length(lightPositionInTangentSpace - intersectionInTangentSpace);
 			interiorPointLightAtten = pow(max(0, 1 - pow(distanceToLightFromIntersection / PointLightAttenuationDistance, 2)), 2);
-
-
 
 //			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
 //			debug = spotLightDir;
@@ -324,13 +321,13 @@ void main()
 //			debug = vec3(tangentDotSpotLight, tangentDotSpotLight, tangentDotSpotLight);
 //			debug = vec3(tangentLightMask , tangentLightMask , tangentLightMask );
 //			debug = vec3(tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask);
-			debug = tangentHalfVec;
 //			debug = vec3(dot(planeHitNormal, tangentHalfVec), dot(planeHitNormal, tangentHalfVec), dot(planeHitNormal, tangentHalfVec));
 		}
 
 		interiorColour = transmitAmount * (diffuseComponent + interiorSpecular) * tangentSpotLightAtten * tangentLightMask * interiorPointLightAtten + AmbientColor;
-//		interiorColour = tangentSpotLightAtten * tangentLightMask + AmbientColor;
 
+		{
+//		interiorColour = tangentSpotLightAtten * tangentLightMask + AmbientColor;
 //		interiorColour = debug;
 		// DEBUGGING
 	//	FragColor = vec4(Position.y/RoomHeight, 0.0, 0.0, 1.0);
@@ -368,11 +365,9 @@ void main()
 	//	FragColor = vec4(c, c, c, 1.0);
 	//	FragColor = vec4(zPlaneV, zPlaneV, zPlaneV, 1.0); // makes sense
 	//	FragColor = vec4(localVerticalRoomCountContinuous / 6, localVerticalRoomCountContinuous/ 6, localVerticalRoomCountContinuous /6, 1.0);
+		}
 	}
 
-
-//	FragColor = vec4(dot(l, Normal), dot(l, Normal), dot(l, Normal), 1.0);
-//	FragColor = vec4(MaterialColor, 1.0);
-	FragColor = vec4(interiorColour + lightComponent * reflectAmount, 1.0);
-//	FragColor = vec4(spotLightAtten, spotLightAtten, spotLightAtten, 1.0);
+	vec3 glowFromStreet = max(vec3(0, 0, 0), (pow(1 - Position.y/ObjectToWorldScaleY, 5) - 0.1) * LightColor * 0.3);
+	FragColor = vec4(interiorColour + (lightComponent * reflectAmount) + glowFromStreet, 1.0);
 }
