@@ -290,33 +290,36 @@ void main()
 			vec3 lightPositionInTangentSpace = inverseWorldToTangent * (inverseWorldToTangentTranslateMat * vec4(LightPosition, 1)).xyz;
 
 
-			vec3 lightVecToIntersectionWithPlaneInTangentSpace = normalize(lightPositionInTangentSpace - intersectionInTangentSpace);
+			vec3 lightVecAtIntersectionWithPlaneInTangentSpace = normalize(lightPositionInTangentSpace - intersectionInTangentSpace);
 
 			// tangentDotSpotLight defines where along the spot light penumbra we are
-			float tangentDotSpotLight = max(0, dot(-lightVecToIntersectionWithPlaneInTangentSpace, spotLightDir)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
+			float tangentDotSpotLight = max(0, dot(-lightVecAtIntersectionWithPlaneInTangentSpace, spotLightDir)); // doesn't account for the light being below the surface, but this will be handled by the lightMask
 			// this creates the attenuation over the range from the inner angle to the outer angle of the spotlight
 			float tangentSpotLightFn = (tangentDotSpotLight  - SpotLightOuterAngleTerm) / SpotLightRangeTerm;
 			// clamp over [0, 1] and raise to the power of 2
 			tangentSpotLightAtten = pow(clamp(tangentSpotLightFn , 0.0, 1.0), 2);
 
-			tangentLightMask = step(dot(planeHitNormal, lightVecToIntersectionWithPlaneInTangentSpace), 0);
+			// very important not to mess up the order of these args, because the first arg is the boundary that is used to compare
+			// reversing them by accident will flip the effect.
+			tangentLightMask = step(0, dot(planeHitNormal, lightVecAtIntersectionWithPlaneInTangentSpace));
 
 			debug = vec3(tangentDotSpotLight,tangentDotSpotLight,tangentDotSpotLight);
 			debug = spotLightDir;
 
 			debug = lightPositionInTangentSpace;
-			debug = -lightVecToIntersectionWithPlaneInTangentSpace; // this should go into negatives.
+			debug = -lightVecAtIntersectionWithPlaneInTangentSpace; // this should go into negatives.
 			debug = spotLightDir;
 
 //			debug = intersectionInTangentSpace 
-			debug = vec3(tangentDotSpotLight, tangentDotSpotLight, tangentDotSpotLight);
-//			debug = vec3(tangentSpotLightFn, tangentSpotLightFn, tangentSpotLightFn);
-			debug = vec3(tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask);
+//			debug = vec3(tangentDotSpotLight, tangentDotSpotLight, tangentDotSpotLight);
+			debug = vec3(tangentLightMask , tangentLightMask , tangentLightMask );
+//			debug = vec3(tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask, tangentSpotLightAtten * tangentLightMask);
+//			debug = lightVecAtIntersectionWithPlaneInTangentSpace;
 		}
 
 		// TODO: specular, point.
-		interiorColour = transmitAmount  * diffuseComponent;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
-		interiorColour = debug;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+		interiorColour = transmitAmount  * diffuseComponent * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+//		interiorColour = tangentSpotLightAtten * tangentLightMask + AmbientColor;
 
 //		interiorColour = debug;
 //		interiorColour = maxByLength(abs(textureCoord) * vec3(1,0,0), abs(textureCoord) * vec3(0,1,0));

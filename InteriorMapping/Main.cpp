@@ -116,7 +116,7 @@ int Main::RunGameLoop(Shader* shader, Shader* shader2, unsigned int& VAO, unsign
 		MouseControlledCamera::GetLookDirection(m_lookDir);
 		shader->setVec3("EyePos", m_cameraPos);
 
-		glm::mat4 lightModelMat = glm::mat4(1.0f);
+		glm::mat4 lightModelMat = glm::mat4(0.3f);
 		// light considerations
 		{
 			glm::vec3 lightPosition = glm::vec3(5 * sin(m_gameTime) + 1.0f, 6.0f, 5 * cos(m_gameTime));
