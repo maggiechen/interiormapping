@@ -46,7 +46,7 @@ public:
     Main(std::string appPath);
 	int Run();
 private:
-	int RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID);
+	int RunGameLoop(Shader* shader, Shader* shader2, unsigned int& VAO, unsigned int& textureID);
     void ProcessKeyboardInput();
 
 	int LoadOpenGLFunctions();

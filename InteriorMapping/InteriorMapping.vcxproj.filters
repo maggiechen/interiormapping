@@ -64,6 +64,12 @@
     <None Include="..\src\shaders\simple\vertex.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\src\shaders\simple\debug_fragment.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\src\shaders\simple\debug_vertex.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\res\0.png">

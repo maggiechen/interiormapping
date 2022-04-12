@@ -169,6 +169,8 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\shaders\simple\debug_fragment.glsl" />
+    <None Include="..\src\shaders\simple\debug_vertex.glsl" />
     <None Include="..\src\shaders\simple\fragment.glsl" />
     <None Include="..\src\shaders\simple\vertex.glsl" />
   </ItemGroup>

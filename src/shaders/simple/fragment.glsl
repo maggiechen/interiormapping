@@ -316,7 +316,7 @@ void main()
 
 		// TODO: specular, point.
 		interiorColour = transmitAmount  * diffuseComponent;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
-		interiorColour = transmitAmount  * diffuseComponent + debug;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
+		interiorColour = debug;// * tangentSpotLightAtten * tangentLightMask + AmbientColor;
 
 //		interiorColour = debug;
 //		interiorColour = maxByLength(abs(textureCoord) * vec3(1,0,0), abs(textureCoord) * vec3(0,1,0));

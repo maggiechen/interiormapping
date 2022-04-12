@@ -36,8 +36,12 @@ int Main::Run()
 	Geometry::CreateRectangle(VAO, VerticesCube, sizeof(VerticesCube), Elements, sizeof(Elements));
 	auto vertPath = m_appPath + "\\vertex.glsl";
 	auto fragPath = m_appPath + "\\fragment.glsl";
-	Shader* shader = new Shader(vertPath.c_str(), fragPath.c_str());
 
+	auto debugVertPath = m_appPath + "\\debug_vertex.glsl";
+	auto debugFragPath = m_appPath + "\\debug_fragment.glsl";
+
+	Shader* shader = new Shader(vertPath.c_str(), fragPath.c_str());
+	Shader* shader2 = new Shader(debugVertPath.c_str(), debugFragPath.c_str());
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
@@ -65,14 +69,14 @@ int Main::Run()
 		stbi_image_free(data);
 	}
 
-	RunGameLoop(shader, VAO, textureID);
+	RunGameLoop(shader, shader2, VAO, textureID);
 
 	DestroyGLFW();
 
 	return ret;
 }
 
-int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID)
+int Main::RunGameLoop(Shader* shader, Shader* shader2, unsigned int& VAO, unsigned int& textureID)
 {
 	MouseControlledCamera m; // initialize the static fields
 	// mouse input
@@ -112,7 +116,8 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		MouseControlledCamera::GetLookDirection(m_lookDir);
 		shader->setVec3("EyePos", m_cameraPos);
 
-		// lighted component
+		glm::mat4 lightModelMat = glm::mat4(1.0f);
+		// light considerations
 		{
 			glm::vec3 lightPosition = glm::vec3(5 * sin(m_gameTime) + 1.0f, 6.0f, 5 * cos(m_gameTime));
 			glm::vec3 spotLightDir = glm::normalize(-lightPosition);
@@ -126,12 +131,15 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 			shader->setFloat("PointLightAttenuationDistance", pointLightAttenuationDistance);
 			shader->setFloat("SpotLightOuterAngleTerm", spotLightOuterAngleTerm);
 			shader->setFloat("SpotLightRangeTerm", spotLightRangeTerm);
+
+			lightModelMat = glm::translate(lightModelMat, lightPosition);
 		}
 
-		// model, view, projection matrices
+		// Set model, view, and projection matrices to identity matrix
+		glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
+
+		// Populate the matrices
 		{
-			// Set model, view, and projection matrices to identity matrix
-			glm::mat4 model = glm::mat4(1.0f), view = glm::mat4(1.0f), projection = glm::mat4(1.0f);
 			float scaleX = 3.0f;
 			float scaleY = 3.0f;
 			float scaleZ = 3.0f;
@@ -140,13 +148,13 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 			projection = glm::perspective(MouseControlledCamera::fov, ((float)s_windowWidth) / s_windowHeight, 0.1f, 100.0f);
 
 			shader->setMat4("model", glm::value_ptr(model));
+
 			shader->setMat4("view", glm::value_ptr(view));
 			shader->setMat4("projection", glm::value_ptr(projection));
 
 			shader->setFloat("WorldToObjectScaleX", (float)1.0 / scaleX);
 			shader->setFloat("WorldToObjectScaleY", (float)1.0 / scaleY);
 			shader->setFloat("WorldToObjectScaleZ", (float)1.0 / scaleZ);
-
 		}
 
 		shader->setFloat("RoomHeight", 1.0);
@@ -154,6 +162,18 @@ int Main::RunGameLoop(Shader* shader, unsigned int& VAO, unsigned int& textureID
 		shader->setFloat("RoomDepth", 1.5);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, sizeof(Elements), GL_UNSIGNED_INT, 0);
+
+		// Render a cube for the position of the light. For debugging
+		{
+			shader2->use();
+			shader2->setMat4("model", glm::value_ptr(lightModelMat));
+			shader2->setMat4("view", glm::value_ptr(view));
+			shader2->setMat4("projection", glm::value_ptr(projection));
+			shader2->setVec3("LightColor", lightColor);
+		}
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, sizeof(Elements), GL_UNSIGNED_INT, 0);
+
 		glfwPollEvents();
 		glfwSwapBuffers(m_window);
 	}
